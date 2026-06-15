@@ -1,0 +1,29 @@
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<link href="/src/app.css" rel="stylesheet">
+		<meta name="viewport" content="width=device-width">
+		<meta name="generator" content={Astro.generator}>
+		<title>招募 | 夏光社</title>
+	</head>
+	<body>
+		<noscript>
+			<h1>请开启JavaScript</h1>
+			<p>本页面需要JavaScript才能正常运作，请在浏览器设置中开启。</p>
+		</noscript>
+		<div id="root">
+			<slot />
+		</div>
+		<script>
+		const root = document.getElementById("root");
+		if (root) root.style.display = "block";
+		</script>
+		<link rel="stylesheet" href="https://cdn.dlv1.projectcvsa.com/cvsa/misans/index.css">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
+			rel="stylesheet"
+		>
+	</body>
+</html>
