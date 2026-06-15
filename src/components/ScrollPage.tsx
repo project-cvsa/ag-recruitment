@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import { Landing } from "./Landing";
 import { IntroScene } from "./IntroScene";
 import { RecruitForm } from "./RecruitForm";
@@ -9,10 +10,10 @@ import { LoadingScreen } from "./LoadingScreen";
 gsap.registerPlugin(ScrollTrigger);
 
 const CHAPTERS = [
-	{ id: "start", label: "START" },
-	{ id: "identity", label: "IDENTITY" },
-	{ id: "objective", label: "OBJECTIVE" },
-	{ id: "enlist", label: "ENLIST" },
+	{ id: "start", label: "开始" },
+	{ id: "identity", label: "关于" },
+	{ id: "objective", label: "加入" },
+	{ id: "enlist", label: "申请" },
 ];
 
 export function ScrollPage() {
@@ -20,47 +21,41 @@ export function ScrollPage() {
 	const [active, setActive] = useState(0);
 	const [loadingDone, setLoadingDone] = useState(false);
 
-	useEffect(() => {
-		gsap.registerPlugin(ScrollTrigger);
+	useGSAP(() => {
+		if (!loadingDone) return;
 
-		const triggers: ScrollTrigger[] = [];
-		const sections = gsap.utils.toArray<HTMLElement>(".story-section");
+		ScrollTrigger.getAll().forEach((t) => {
+			if (t.vars.id?.startsWith("nav-")) t.kill();
+		});
+
+		const sections = gsap.utils.toArray<HTMLElement>(".story-section", mainRef.current);
+
 		sections.forEach((section, i) => {
-			const st = ScrollTrigger.create({
+			ScrollTrigger.create({
+				id: `nav-${i}`,
 				trigger: section,
 				start: "top center",
 				end: "bottom center",
+				refreshPriority: -1,
 				onEnter: () => setActive(i),
 				onEnterBack: () => setActive(i),
 			});
-			triggers.push(st);
 		});
 
-		// Refresh once all child ScrollTriggers have been created.
-		const refreshTimer = setTimeout(() => ScrollTrigger.refresh(), 100);
-
-		return () => {
-			clearTimeout(refreshTimer);
-			triggers.forEach((t) => {
-				t.kill();
-			});
-		};
-	}, []);
+		ScrollTrigger.refresh();
+	}, [loadingDone]);
 
 	const scrollTo = (i: number) => {
-		const sections = document.querySelectorAll<HTMLElement>(".story-section");
+		const sections = mainRef.current?.querySelectorAll<HTMLElement>(".story-section");
+		if (!sections?.[i]) return;
 		const target = sections[i];
-		if (!target) return;
 
 		if (i === 0) {
 			window.scrollTo({ top: 0, behavior: "smooth" });
 			return;
 		}
 
-		const pinned = ScrollTrigger.getAll().find(
-			(st) => st.trigger === target && st.pin,
-		);
-
+		const pinned = ScrollTrigger.getAll().find((st) => st.trigger === target && st.pin);
 		const windowHeight = window.innerHeight;
 
 		if (pinned) {
@@ -72,9 +67,7 @@ export function ScrollPage() {
 
 	return (
 		<>
-			{!loadingDone && (
-				<LoadingScreen onComplete={() => setLoadingDone(true)} />
-			)}
+			{!loadingDone && <LoadingScreen onComplete={() => setLoadingDone(true)} />}
 
 			{loadingDone && (
 				<main ref={mainRef} className="relative">
@@ -127,7 +120,7 @@ export function ScrollPage() {
 							"作曲编曲",
 							"项目策划",
 							"平面设计",
-							"活动运营"
+							"活动运营",
 						]}
 						variant="right"
 						className="story-section"

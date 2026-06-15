@@ -28,18 +28,21 @@ export function IntroScene({
 	const sectionRef = useRef<HTMLElement>(null);
 
 	useEffect(() => {
-		const ctx = gsap.context(() => {
+		const ctx = gsap.context((self) => {
+			const q = self.selector;
+			if (!q) return;
+
 			const isRight = variant === "right";
-			const xEnterTitle = isRight ? 80 : -80;
-			const xEnterText = isRight ? -60 : 60;
-			const xExitTitle = isRight ? -80 : 80;
-			const xExitText = isRight ? 60 : -60;
+			const xEnterTitle = isRight ? "5vw" : "-5vw";
+			const xEnterText = isRight ? "-4vw" : "4vw";
+			const xExitTitle = isRight ? "-5vw" : "5vw";
+			const xExitText = isRight ? "4vw" : "-4vw";
 
 			const tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: sectionRef.current,
 					start: "top top",
-					end: "+=110%",
+					end: "+=90%",
 					pin: true,
 					scrub: 0.6,
 					invalidateOnRefresh: true,
@@ -48,43 +51,43 @@ export function IntroScene({
 
 			tl.addLabel("enter", 0)
 				.fromTo(
-					".scene-label",
-					{ x: -40, opacity: 0 },
+					q(".scene-label"),
+					{ x: isRight ? 40 : -40, opacity: 0 },
 					{ x: 0, opacity: 1, duration: 0.16, ease: "power2.out" },
 					"enter"
 				)
 				.fromTo(
-					".scene-watermark",
+					q(".scene-watermark"),
 					{ scale: 0.8, opacity: 0, rotation: isRight ? 8 : -8 },
 					{ scale: 1, opacity: 0.06, rotation: 0, duration: 0.28, ease: "power2.out" },
 					"enter"
 				)
 				.fromTo(
-					".scene-title-line",
+					q(".scene-title-line"),
 					{ x: xEnterTitle, opacity: 0 },
 					{ x: 0, opacity: 1, duration: 0.24, stagger: 0.03, ease: "power2.out" },
 					"enter+=0.04"
 				)
 				.fromTo(
-					".scene-divider",
+					q(".scene-divider"),
 					{ scaleX: 0 },
 					{ scaleX: 1, duration: 0.24, ease: "power2.inOut" },
 					"enter+=0.12"
 				)
 				.fromTo(
-					".scene-para",
+					q(".scene-para"),
 					{ x: xEnterText, opacity: 0 },
 					{ x: 0, opacity: 1, duration: 0.2, stagger: 0.06, ease: "power2.out" },
 					"enter+=0.12"
 				)
 				.fromTo(
-					".scene-highlight",
+					q(".scene-highlight"),
 					{ y: 30, opacity: 0 },
 					{ y: 0, opacity: 1, duration: 0.18, stagger: 0.03, ease: "power2.out" },
 					"enter+=0.2"
 				)
 				.fromTo(
-					".scene-geo",
+					q(".scene-geo"),
 					{ scale: 0, rotation: isRight ? -45 : 45, opacity: 0 },
 					{
 						scale: 1,
@@ -96,27 +99,31 @@ export function IntroScene({
 					},
 					"enter+=0.08"
 				)
-				.addLabel("settle", 0.32)
-				.to({}, { duration: 0.18 }, "settle")
-				.addLabel("exit", 0.5)
+				.addLabel("settle", 0.5)
+				.to({}, { duration: 0.3 }, "settle")
+				.addLabel("exit", 0.8)
 				.to(
-					".scene-title-line",
+					q(".scene-title-line"),
 					{ x: xExitTitle, opacity: 0, duration: 0.2, ease: "power2.in" },
 					"exit"
 				)
 				.to(
-					".scene-para",
+					q(".scene-para"),
 					{ x: xExitText, opacity: 0, duration: 0.2, ease: "power2.in" },
 					"exit"
 				)
 				.to(
-					".scene-highlight",
+					q(".scene-highlight"),
 					{ y: -20, opacity: 0, duration: 0.16, stagger: 0.02, ease: "power2.in" },
 					"exit"
 				)
-				.to(".scene-divider", { scaleX: 0, duration: 0.16, ease: "power2.inOut" }, "exit")
 				.to(
-					".scene-geo",
+					q(".scene-divider"),
+					{ scaleX: 0, duration: 0.16, ease: "power2.inOut" },
+					"exit"
+				)
+				.to(
+					q(".scene-geo"),
 					{
 						scale: 1.3,
 						rotation: isRight ? 45 : -45,
@@ -127,9 +134,9 @@ export function IntroScene({
 					},
 					"exit"
 				)
-				.to(".scene-label", { opacity: 0, duration: 0.12, ease: "power2.in" }, "exit")
+				.to(q(".scene-label"), { opacity: 0, duration: 0.12, ease: "power2.in" }, "exit")
 				.to(
-					".scene-watermark",
+					q(".scene-watermark"),
 					{ opacity: 0, scale: 1.1, duration: 0.24, ease: "power2.in" },
 					"exit"
 				);
@@ -162,38 +169,45 @@ export function IntroScene({
 			{/* watermark number */}
 			<div
 				className={`scene-watermark absolute z-0 font-[Outfit] font-black 
-					text-[clamp(12rem,28vw,24rem)] leading-none text-stroke
-					 pointer-events-none select-none ${isRight ? "right-[10%]" : "left-[5%]"}`}
+                    text-[clamp(12rem,28vw,24rem)] leading-none text-stroke
+                     pointer-events-none select-none ${isRight ? "right-[10%]" : "left-[5%]"}`}
 			>
 				{String(index).padStart(2, "0")}
 			</div>
 
 			<div className="relative z-10 w-full px-6 md:px-14 lg:px-36">
-				<div className={"mx-3 scene-label mb-8 font-[Outfit] text-[11px] tracking-[0.25em] uppercase text-foreground/70 "
-					+ (isRight ? "md:text-right relative md:right-[10%]" : "")
-				}>
+				<div
+					className={
+						"mx-3 scene-label mb-8 font-[Outfit] text-[11px] tracking-[0.25em] uppercase text-foreground/70 " +
+						(isRight ? "md:text-right relative md:right-[10%]" : "")
+					}
+				>
 					{label}
 				</div>
 
 				<div
 					className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 
-						items-center ${isRight ? "lg:text-right" : ""}`}
+                        items-center ${isRight ? "lg:text-right" : ""}`}
 				>
 					<div className={`lg:col-span-6 ${isRight ? "lg:order-2" : ""} relative`}>
-						<h2 className="scene-title-line text-[clamp(3.5rem,6vw,6rem)] 
-						leading-[0.9] font-extralight tracking-tight text-foreground">
+						<h2
+							className="scene-title-line text-[clamp(3.5rem,6vw,6rem)] 
+                        leading-[0.9] font-extralight tracking-tight text-foreground"
+						>
 							{title}
 						</h2>
 						<div
 							className={`scene-divider w-3/4 h-px bg-foreground/40 my-6 origin-left
-								 ${isRight ? "lg:origin-right lg:ml-auto" : ""}`}
+                                 ${isRight ? "lg:origin-right lg:ml-auto" : ""}`}
 						/>
 						<p className="scene-title-line font-[Outfit] text-lg md:text-xl tracking-widest uppercase text-foreground/80">
 							{subtitle}
 						</p>
 					</div>
 
-					<div className={`lg:col-span-5 text-left ${isRight ? "lg:order-1 n" : "lg:col-start-8"}`}>
+					<div
+						className={`lg:col-span-5 text-left ${isRight ? "lg:order-1" : "lg:col-start-8"}`}
+					>
 						{paragraphs.map((p, i) => (
 							<p
 								key={i}
@@ -204,9 +218,7 @@ export function IntroScene({
 						))}
 
 						{highlights && highlights.length > 0 && (
-							<div
-								className="mt-8 flex flex-wrap gap-3"
-							>
+							<div className="mt-8 flex flex-wrap gap-3">
 								{highlights.map((h) => (
 									<span
 										key={h}
