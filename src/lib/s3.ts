@@ -7,7 +7,7 @@ const s3Client = new S3Client({
 		accessKeyId: import.meta.env.S3_ACCESS_KEY_ID || "",
 		secretAccessKey: import.meta.env.S3_SECRET_ACCESS_KEY || "",
 	},
-	forcePathStyle: true,
+	forcePathStyle: false,
 });
 
 export { s3Client };

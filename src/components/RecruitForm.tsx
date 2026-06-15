@@ -5,6 +5,8 @@ import { getNewCaptcha, solveAndSubmit } from "../lib/ucaptcha";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
 const ROLES = [
 	"画师",
 	"视频制作",
@@ -52,7 +54,7 @@ function FieldPanel({
 	);
 }
 
-type FileStatus = "idle" | "uploading" | "uploaded" | "error";
+type FileStatus = "idle" | "validating" | "uploading" | "uploaded" | "error";
 
 export function RecruitForm({ className }: { className?: string }) {
 	const sectionRef = useRef<HTMLElement>(null);
@@ -70,6 +72,7 @@ export function RecruitForm({ className }: { className?: string }) {
 	const [error, setError] = useState<string | null>(null);
 	const [dragOver, setDragOver] = useState(false);
 	const [fileStatus, setFileStatus] = useState<FileStatus>("idle");
+	const [uploadProgress, setUploadProgress] = useState(0);
 	const [portfolioUrl, setPortfolioUrl] = useState<string>("");
 
 	useEffect(() => {
@@ -135,25 +138,57 @@ export function RecruitForm({ className }: { className?: string }) {
 	};
 
 	const uploadFile = useCallback(async (file: File) => {
-		setFileStatus("uploading");
+		setFileStatus("validating");
+		setUploadProgress(0);
 		try {
 			const captcha = await getNewCaptcha("upload-files");
 			const token = await solveAndSubmit(captcha);
 
-			const fileFormData = new FormData();
-			fileFormData.append("file", file);
-			const res = await fetch("/api/upload", {
+			const presignRes = await fetch("/api/upload", {
 				method: "POST",
-				headers: { Authorization: `Bearer ${token}` },
-				body: fileFormData,
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					filename: file.name,
+					contentType: file.type,
+					contentLength: file.size,
+				}),
 			});
 
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || "文件上传失败");
+			if (!presignRes.ok) {
+				const data = await presignRes.json();
+				throw new Error(data.error || "无法获取上传链接");
 			}
 
-			const { url } = await res.json();
+			const { presignedUrl, url } = await presignRes.json();
+
+			setFileStatus("uploading");
+
+			await new Promise<void>((resolve, reject) => {
+				const xhr = new XMLHttpRequest();
+				xhr.open("PUT", presignedUrl);
+				xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+
+				xhr.upload.onprogress = (e) => {
+					if (e.lengthComputable) {
+						setUploadProgress(Math.round((e.loaded / e.total) * 100));
+					}
+				};
+
+				xhr.onload = () => {
+					if (xhr.status >= 200 && xhr.status < 300) {
+						resolve();
+					} else {
+						reject(new Error("文件上传失败"));
+					}
+				};
+
+				xhr.onerror = () => reject(new Error("文件上传失败"));
+				xhr.send(file);
+			});
+
 			setPortfolioUrl(url);
 			setFileStatus("uploaded");
 		} catch (err) {
@@ -163,9 +198,14 @@ export function RecruitForm({ className }: { className?: string }) {
 	}, []);
 
 	const handleFile = (file: File) => {
+		if (file.size > MAX_FILE_SIZE) {
+			setError("文件大小不能超过 50 MB");
+			return;
+		}
 		setForm((prev) => ({ ...prev, file }));
 		setError(null);
 		setFileStatus("idle");
+		setUploadProgress(0);
 		setPortfolioUrl("");
 		uploadFile(file);
 	};
@@ -196,7 +236,7 @@ export function RecruitForm({ className }: { className?: string }) {
 			return;
 		}
 
-		if (form.file && fileStatus === "uploading") {
+		if (form.file && (fileStatus === "validating" || fileStatus === "uploading")) {
 			setError("文件正在上传中，请稍候...");
 			return;
 		}
@@ -349,6 +389,7 @@ export function RecruitForm({ className }: { className?: string }) {
 					</FieldPanel>
 
 					<FieldPanel index="05" label="作品集 / Portfolio">
+						<p className="text-foreground/80 mb-2 text-sm mt-3">本项非必填。</p>
 						<input
 							ref={fileInputRef}
 							type="file"
@@ -360,7 +401,7 @@ export function RecruitForm({ className }: { className?: string }) {
 						/>
 						<button
 							type="button"
-							className={`geo-file ${dragOver ? "drag-over" : ""} ${fileStatus === "uploading" ? "pointer-events-none" : ""}`}
+							className={`geo-file ${dragOver ? "drag-over" : ""} ${fileStatus === "validating" || fileStatus === "uploading" ? "pointer-events-none" : ""}`}
 							onClick={() => fileInputRef.current?.click()}
 							onDragOver={(e) => {
 								e.preventDefault();
@@ -379,28 +420,42 @@ export function RecruitForm({ className }: { className?: string }) {
 							)}
 						</button>
 						{form.file && (
-							<div className="mt-3 flex items-center gap-3">
-								<span className="text-xs text-foreground/60">{(form.file.size / 1024 / 1024).toFixed(2)} MB</span>
+							<div className="mt-3 flex flex-col gap-2">
+								<div className="flex items-center gap-3">
+									<span className="text-xs text-foreground/60">{(form.file.size / 1024 / 1024).toFixed(2)} MB</span>
+									{fileStatus === "validating" && (
+										<span className="text-xs text-foreground/60">正在验证…</span>
+									)}
+									{fileStatus === "uploading" && (
+										<span className="text-xs text-foreground/60">上传中 {uploadProgress}%</span>
+									)}
+									{fileStatus === "uploaded" && (
+										<span className="text-xs text-green-500">已上传</span>
+									)}
+									{fileStatus === "error" && (
+										<span className="text-xs text-red-500">上传失败</span>
+									)}
+									<button
+										type="button"
+										onClick={() => {
+											setForm((p) => ({ ...p, file: null }));
+											setFileStatus("idle");
+											setUploadProgress(0);
+											setPortfolioUrl("");
+										}}
+										className="text-xs underline underline-offset-4 text-foreground/70 hover:text-foreground"
+									>
+										移除
+									</button>
+								</div>
 								{fileStatus === "uploading" && (
-									<span className="text-xs text-foreground/60">上传中...</span>
+									<div className="h-1 w-full bg-foreground/10">
+										<div
+											className="h-full bg-foreground/40 transition-all duration-300"
+											style={{ width: `${uploadProgress}%` }}
+										/>
+									</div>
 								)}
-								{fileStatus === "uploaded" && (
-									<span className="text-xs text-green-500">已上传</span>
-								)}
-								{fileStatus === "error" && (
-									<span className="text-xs text-red-500">上传失败</span>
-								)}
-								<button
-									type="button"
-									onClick={() => {
-										setForm((p) => ({ ...p, file: null }));
-										setFileStatus("idle");
-										setPortfolioUrl("");
-									}}
-									className="text-xs underline underline-offset-4 text-foreground/70 hover:text-foreground"
-								>
-									移除
-								</button>
 							</div>
 						)}
 					</FieldPanel>

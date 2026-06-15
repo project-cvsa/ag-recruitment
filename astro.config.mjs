@@ -16,6 +16,9 @@ export default defineConfig({
 		optimizeDeps: {
 			exclude: ["@ucaptcha/js"],
 		},
+		server: {
+			allowedHosts: ["join-ag.projectcvsa.com"]
+		}
 	},
 	security: {
 		checkOrigin: false,
