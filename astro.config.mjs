@@ -17,5 +17,8 @@ export default defineConfig({
 			exclude: ["@ucaptcha/js"],
 		},
 	},
+	security: {
+		checkOrigin: false,
+	},
 	integrations: [react()],
 });
