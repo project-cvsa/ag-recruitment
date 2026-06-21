@@ -7,7 +7,7 @@ const SUBMISSIONS_DIR = import.meta.env.SUBMISSIONS_DIR || "./data/submissions";
 
 export const POST: APIRoute = async ({ request }) => {
 	try {
-		const authError = await verifyRequest(request);
+		const authError = await verifyRequest(request, "submit");
 		if (authError) return authError;
 
 		const body = await request.json();

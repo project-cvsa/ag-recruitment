@@ -8,7 +8,7 @@ const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
 
 export const POST: APIRoute = async ({ request }) => {
 	try {
-		const authError = await verifyRequest(request);
+		const authError = await verifyRequest(request, "upload-file");
 		if (authError) return authError;
 
 		const { filename, contentType, contentLength } = (await request.json()) as {
